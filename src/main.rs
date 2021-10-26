@@ -15,6 +15,7 @@ struct Model {
 fn model(app: &App) -> Model {
     app.new_window()
         .title("Cram")
+        .size(1200+20, 567+20)
         .event(event)
         .view(view)
         .build()
@@ -24,9 +25,9 @@ fn model(app: &App) -> Model {
     let img_path = assets.join("maps").join("floor.jpg");
     let texture = wgpu::Texture::from_path(app, img_path.clone()).unwrap();
     let img = ImageReader::open(img_path).unwrap().decode().unwrap().to_rgb8();
-    let pixels = img.as_raw().to_vec();
-    let matrix = Array::from_shape_vec((img.height() as usize, img.width() as usize, 3 as usize), pixels).unwrap();
-    println!("{:?}", matrix.shape());
+    // let pixels = img.as_raw().to_vec();
+    // let matrix = Array::from_shape_vec((img.height() as usize, img.width() as usize, 3 as usize), pixels).unwrap();
+    // println!("{:?}", matrix.shape());
 
     Model {
         mouse_pos: pt2(0.0, 0.0),
