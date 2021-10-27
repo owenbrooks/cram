@@ -371,6 +371,7 @@ dependencies = [
 name = "cram"
 version = "0.1.0"
 dependencies = [
+ "kdtree",
  "nannou",
  "ndarray",
 ]
@@ -1168,6 +1169,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7cc9ffccd38c451a86bf13657df244e9c3f37493cce8e5e21e940963777acc84"
 dependencies = [
  "wasm-bindgen",
+]
+
+[[package]]
+name = "kdtree"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b63d659081717fe428fbaf9549559083956450194e57e8d28498a0dfa31b3b04"
+dependencies = [
+ "num-traits",
 ]
 
 [[package]]
