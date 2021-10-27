@@ -1,5 +1,5 @@
 use ndarray::prelude::*;
-use ndarray::{stack};
+use ndarray::stack;
 use nannou::prelude::*;
 fn main() {
     nannou::app(model).update(update).run();
@@ -20,11 +20,26 @@ fn model(app: &App) -> Model {
 
     let x = Array::linspace(-3., 3., 100);
     let y = x.map(|t| t.sin());
-    let pc = stack![Axis(1), x, y];
+    let h = Array::ones(x.len());
+    let pc = stack![Axis(1), x, y, h];
+
+    let rmat = cram::transforms::angle_to_rmat(std::f32::consts::FRAC_PI_6);
+    let trans = array![2., 0.];
+    let t = array![[rmat[[0,0]], rmat[[0,1]], trans[0]], 
+                    [rmat[[1,0]], rmat[[1,1]], trans[1]],
+                    [0., 0., 1.],
+                ];
+
+    let mut pc2 = Array2::zeros((pc.nrows(), pc.ncols()));
+    for (i, mut row) in pc2.axis_iter_mut(Axis(0)).enumerate() {
+        let pt = pc.slice(s![i, ..]);
+        let new_pt = t.dot(&pt);
+        row.assign(&new_pt);
+    }
 
     Model {
         mouse_pos: pt2(0.0, 0.0),
-        clouds: vec![pc],
+        clouds: vec![pc, pc2],
     }
 }
 
