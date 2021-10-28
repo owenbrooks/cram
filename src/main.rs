@@ -1,6 +1,5 @@
 use ndarray::prelude::*;
 use ndarray::stack;
-use ndarray_linalg::solve::Inverse;
 use nannou::prelude::*;
 use cram::icp::nearest_neighbours;
 fn main() {
@@ -41,8 +40,7 @@ fn model(app: &App) -> Model {
         mouse_pos: pt2(0.0, 0.0),
         cloud_ref,
         cloud_target, 
-        computed_transform: Array::eye(tvec.len()+1), // will eventually bring ref to target
-        // computed_transform: tmat,
+        computed_transform: Array::eye(tvec.len()+1), // will eventually bring target to ref
         correspondences,
         should_step: false,
     }
@@ -52,13 +50,15 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
     if model.should_step {
         model.should_step = false;
         // Perform one ICP iteration and update transform
-        let transformed_target = cram::transforms::transformed_cloud(&model.cloud_ref, &model.computed_transform);
+        let transformed_target = cram::transforms::transformed_cloud(&model.cloud_target, &model.computed_transform);
         let new_transform = cram::icp::find_transform(&model.cloud_ref, &transformed_target, &model.correspondences);
         model.computed_transform = new_transform.dot(&model.computed_transform);
-
+        // let mut addition = Array::eye(model.computed_transform.nrows());
+        // addition[[0,2]] += 0.1;
+        // model.computed_transform = addition.dot(&model.computed_transform);
         println!("{:?}", model.computed_transform);
         // Update correspondences
-        let transformed_target = cram::transforms::transformed_cloud(&model.cloud_ref, &model.computed_transform);
+        let transformed_target = cram::transforms::transformed_cloud(&model.cloud_target, &model.computed_transform);
         model.correspondences = nearest_neighbours(&model.cloud_ref, &transformed_target);
     }
 }
@@ -85,12 +85,18 @@ fn view(app: &App, model: &Model, frame: Frame) {
         let y = row[1]*m2pixel;
         draw.ellipse().x_y(x as f32, y as f32).radius(3.0).color(nannou::color::BLACK);
     }
-    let inverse_transform = &model.computed_transform.inv().unwrap();
-    let transformed_target = cram::transforms::transformed_cloud(&model.cloud_target, &inverse_transform);
+
+    let transformed_target = cram::transforms::transformed_cloud(&model.cloud_target, &model.computed_transform);
     for row in transformed_target.outer_iter() {
         let x = row[0]*m2pixel;
         let y = row[1]*m2pixel;
         draw.ellipse().x_y(x as f32, y as f32).radius(3.0).color(nannou::color::MEDIUMSLATEBLUE);
+    }
+
+    for row in model.cloud_target.outer_iter() {
+        let x = row[0]*m2pixel;
+        let y = row[1]*m2pixel;
+        draw.ellipse().x_y(x as f32, y as f32).radius(3.0).color(nannou::color::RED);
     }
 
     // Draw lines to indicate correspondences

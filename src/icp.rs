@@ -28,9 +28,9 @@ pub fn nearest_neighbours(reference: &Array2<f64>, new: &Array2<f64>) -> Array1<
 fn sum_squared_distance(reference: &Array2<f64>, target: &Array2<f64>, correspondences: &Array1<usize>, transform: &Array2<f64>) -> f64 {
 	let mut sum = 0.;
 	for i in 0..correspondences.len() {
-		let q = target.row(i);
+		let p = target.row(i).to_owned();
 		let to = correspondences[i];
-		let p = reference.row(to).to_owned();
+		let q = reference.row(to);
 		let tq = transform.dot(&q);
 		let diff = p - tq;
 		let cost = diff.dot(&diff);
@@ -41,9 +41,9 @@ fn sum_squared_distance(reference: &Array2<f64>, target: &Array2<f64>, correspon
 fn sum_squared_distance_grad(reference: &Array2<f64>, target: &Array2<f64>, correspondences: &Array1<usize>, transform: &Array2<f64>, grad: &mut [f64]) {
 	// println!("{:?}", transform);
 	for i in 0..correspondences.len() {
-		let q = target.row(i);
+		let p = target.row(i).to_owned();
 		let to = correspondences[i];
-		let p = reference.row(to).to_owned();
+		let q = reference.row(to);
 		let tq = transform.dot(&q);
 		let diff = p - tq;
 		let sinw = transform[[0, 1]];
