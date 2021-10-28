@@ -27,11 +27,8 @@ fn model(app: &App) -> Model {
     let cloud_ref = stack![Axis(1), x, y, h];
 
     let rmat = cram::transforms::angle_to_rmat(std::f32::consts::FRAC_PI_6);
-    let trans = array![2., 0.];
-    let t = array![[rmat[[0,0]], rmat[[0,1]], trans[0]], 
-                    [rmat[[1,0]], rmat[[1,1]], trans[1]],
-                    [0., 0., 1.],
-                ];
+    let tvec = array![2., 0.];
+    let t = cram::transforms::rmat_and_tvec_to_tmat(rmat, tvec);
 
     let mut cloud_target = Array2::zeros((cloud_ref.nrows(), cloud_ref.ncols()));
     for (i, mut row) in cloud_target.axis_iter_mut(Axis(0)).enumerate() {
@@ -68,6 +65,8 @@ fn view(app: &App, model: &Model, frame: Frame) {
     draw.background().color(WHITE);
 
     let m2pixel = 100.0;
+
+    // Draw point clouds
     for row in model.cloud_ref.outer_iter() {
         let x = row[0]*m2pixel;
         let y = row[1]*m2pixel;
@@ -79,6 +78,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
         draw.ellipse().x_y(x, y).radius(3.0).color(nannou::color::MEDIUMSLATEBLUE);
     }
 
+    // Draw lines to indicate correspondences
     for to in 0..model.correspondences.len() {
         let from = model.correspondences[to];
         let new_pt = model.cloud_ref.index_axis(Axis(0), from);
