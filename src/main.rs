@@ -2,6 +2,7 @@ use ndarray::prelude::*;
 use ndarray::stack;
 use nannou::prelude::*;
 use cram::icp::nearest_neighbours;
+
 fn main() {
     nannou::app(model).update(update).run();
 }
@@ -29,7 +30,7 @@ fn model(app: &App) -> Model {
     let cloud_ref = stack![Axis(1), x, y, h];
 
     let rmat = cram::transforms::angle_to_rmat(std::f64::consts::FRAC_PI_6);
-    let tvec = array![0., 0.];
+    let tvec = array![2., 0.];
     let tmat = cram::transforms::rmat_and_tvec_to_tmat(&rmat, &tvec);
 
     let cloud_target = cram::transforms::transformed_cloud(&cloud_ref, &tmat);
@@ -53,9 +54,7 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
         let transformed_target = cram::transforms::transformed_cloud(&model.cloud_target, &model.computed_transform);
         let new_transform = cram::icp::find_transform(&model.cloud_ref, &transformed_target, &model.correspondences);
         model.computed_transform = new_transform.dot(&model.computed_transform);
-        // let mut addition = Array::eye(model.computed_transform.nrows());
-        // addition[[0,2]] += 0.1;
-        // model.computed_transform = addition.dot(&model.computed_transform);
+
         println!("{:?}", model.computed_transform);
         // Update correspondences
         let transformed_target = cram::transforms::transformed_cloud(&model.cloud_target, &model.computed_transform);
