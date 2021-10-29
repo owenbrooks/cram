@@ -2,7 +2,8 @@ use ndarray::prelude::*;
 use kdtree::KdTree;
 use kdtree::distance::squared_euclidean;
 use crate::transforms::*;
-use ndarray_linalg::{solve::Determinant, Inverse, svd::*};
+use ndarray_linalg::{solve::Determinant, svd::*};
+use approx::abs_diff_eq;
 
 // input: two point clouds, reference (dimension mxn) and new (dimension wxn)
 // output: vector of indices of the points in reference that are closest to the points in new, length w
@@ -41,7 +42,9 @@ pub fn find_transform(from: &Array2<f64>, to: &Array2<f64>, correspondences: &Ar
 	let x = v.dot(&u.t());
 	let det_x = x.det().unwrap();
 
-	let rmat = if det_x == 1. {x} else {x.inv().unwrap()}; // TODO: solve the non-1 case
+	let rmat = if abs_diff_eq!(det_x, 1.) {x} else {
+		panic!("Algorithm failed since det(x) = -1");
+	}; // TODO: solve the non-1 case
 	let t =  p_dash - rmat.dot(&p);
 	
 	let tmat = rmat_and_tvec_to_tmat(&rmat, &t);
