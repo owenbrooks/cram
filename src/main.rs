@@ -41,7 +41,7 @@ fn model(app: &App) -> Model {
         mouse_pos: pt2(0.0, 0.0),
         cloud_ref,
         cloud_target, 
-        computed_transform: Array::eye(tvec.len()+1), // will eventually bring target to ref
+        computed_transform: Array::eye(tvec.len()+1), // will eventually bring ref to target
         correspondences,
         should_step: false,
     }
@@ -51,14 +51,14 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
     if model.should_step {
         model.should_step = false;
         // Perform one ICP iteration and update transform
-        let transformed_target = cram::transforms::transformed_cloud(&model.cloud_target, &model.computed_transform);
-        let new_transform = cram::icp::find_transform(&model.cloud_ref, &transformed_target, &model.correspondences);
+        let transformed_ref = cram::transforms::transformed_cloud(&model.cloud_ref, &model.computed_transform);
+        let new_transform = cram::icp::find_transform(&transformed_ref, &model.cloud_target, &model.correspondences);
         model.computed_transform = new_transform.dot(&model.computed_transform);
 
-        println!("{:?}", model.computed_transform);
+        println!("transform: {:?}", model.computed_transform);
         // Update correspondences
-        let transformed_target = cram::transforms::transformed_cloud(&model.cloud_target, &model.computed_transform);
-        model.correspondences = nearest_neighbours(&model.cloud_ref, &transformed_target);
+        let transformed_ref = cram::transforms::transformed_cloud(&model.cloud_ref, &model.computed_transform);
+        model.correspondences = nearest_neighbours(&transformed_ref, &model.cloud_target);
     }
 }
 
@@ -85,8 +85,8 @@ fn view(app: &App, model: &Model, frame: Frame) {
         draw.ellipse().x_y(x as f32, y as f32).radius(3.0).color(nannou::color::BLACK);
     }
 
-    let transformed_target = cram::transforms::transformed_cloud(&model.cloud_target, &model.computed_transform);
-    for row in transformed_target.outer_iter() {
+    let transformed_ref = cram::transforms::transformed_cloud(&model.cloud_ref, &model.computed_transform);
+    for row in transformed_ref.outer_iter() {
         let x = row[0]*m2pixel;
         let y = row[1]*m2pixel;
         draw.ellipse().x_y(x as f32, y as f32).radius(3.0).color(nannou::color::MEDIUMSLATEBLUE);
@@ -101,8 +101,8 @@ fn view(app: &App, model: &Model, frame: Frame) {
     // Draw lines to indicate correspondences
     for to in 0..model.correspondences.len() {
         let from = model.correspondences[to];
-        let new_pt = model.cloud_ref.index_axis(Axis(0), from);
-        let ref_pt = transformed_target.index_axis(Axis(0), to);
+        let new_pt = model.cloud_target.index_axis(Axis(0), from);
+        let ref_pt = transformed_ref.index_axis(Axis(0), to);
 
         let new_pt = vec2(new_pt[0] as f32, new_pt[1] as f32)*m2pixel as f32;
         let ref_pt = vec2(ref_pt[0] as f32, ref_pt[1] as f32)*m2pixel as f32;

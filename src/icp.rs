@@ -26,29 +26,23 @@ pub fn nearest_neighbours(reference: &Array2<f64>, new: &Array2<f64>) -> Array1<
 
 // performs one iteration of ICP algorithm to find transform from target to reference
 // uses SVD-based algorithm described in Least-Squares Fitting of Two 3-D Point Sets by K. S. ARUN
-pub fn find_transform(reference: &Array2<f64>, target: &Array2<f64>, correspondences: &Array1<usize>) -> Array2<f64> {
-	let p = reference.slice(s![.., ..reference.ncols()-1]).mean_axis(Axis(0)).unwrap();
-	println!("p {:?}", p);
-	println!("{:?}", target);
-	let p_dash = target.slice(s![.., ..target.ncols()-1]).mean_axis(Axis(0)).unwrap();
+pub fn find_transform(from: &Array2<f64>, to: &Array2<f64>, correspondences: &Array1<usize>) -> Array2<f64> {
+	let p = from.slice(s![.., ..from.ncols()-1]).mean_axis(Axis(0)).unwrap();
+	let p_dash = to.slice(s![.., ..to.ncols()-1]).mean_axis(Axis(0)).unwrap();
 
-	let qi = reference.slice(s![.., ..reference.ncols()-1]).to_owned() - &p;
-	let qi_dash = target.slice(s![.., ..target.ncols()-1]).to_owned() - &p;
-	println!("qi {:?}", qi);
+	let qi = from.slice(s![.., ..from.ncols()-1]).to_owned() - &p;
+	let qi_dash = to.slice(s![.., ..to.ncols()-1]).to_owned() - &p;
 	
 	let h = qi.t().dot(&qi_dash);
-	println!("h {:?}", h);
 	let svd = h.svd(true, true).unwrap();
 	let u = svd.0.unwrap();
 	let vt = svd.2.unwrap();
-	println!("u {:?}", u);
 	let v = vt.t();
 	let x = v.dot(&u.t());
 	let det_x = x.det().unwrap();
-	println!("x {:?}", x);
 
 	let rmat = if det_x == 1. {x} else {x.inv().unwrap()}; // TODO: solve the non-1 case
-	let t =  rmat.dot(&p) - p_dash;
+	let t =  p_dash - rmat.dot(&p);
 	
 	let tmat = rmat_and_tvec_to_tmat(&rmat, &t);
 
