@@ -57,6 +57,7 @@ fn sum_squared_distance_grad(reference: &Array2<f64>, target: &Array2<f64>, corr
 	}
 }
 
+// performs one iteration of ICP algorithm to find transform from target to reference
 pub fn find_transform(reference: &Array2<f64>, target: &Array2<f64>, correspondences: &Array1<usize>) -> Array2<f64> {
 	/* USER PARAMETERS */
     let tolerance = 1e-14;
