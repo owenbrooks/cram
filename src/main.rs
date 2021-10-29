@@ -30,7 +30,7 @@ fn model(app: &App) -> Model {
     let cloud_ref = stack![Axis(1), x, y, h];
 
     let rmat = cram::transforms::angle_to_rmat(std::f64::consts::FRAC_PI_6);
-    let tvec = array![2., 0.];
+    let tvec = array![2., 3.];
     let tmat = cram::transforms::rmat_and_tvec_to_tmat(&rmat, &tvec);
 
     let cloud_target = cram::transforms::transformed_cloud(&cloud_ref, &tmat);
