@@ -1,8 +1,8 @@
+use cram::icp::nearest_neighbours;
+use nannou::prelude::*;
 use ndarray::prelude::*;
 use ndarray::stack;
 use ndarray_linalg::Inverse;
-use nannou::prelude::*;
-use cram::icp::nearest_neighbours;
 
 fn main() {
     nannou::app(model).update(update).run();
@@ -36,7 +36,7 @@ fn model(app: &App) -> Model {
     let tvec = array![2., 0.];
     let tmat = cram::transforms::rmat_and_tvec_to_tmat(&rmat, &tvec);
 
-    let noise = x.map(|x| 1.2*(100.*x).sin() + x.sin());
+    let noise = x.map(|x| 1.2 * (100. * x).sin() + x.sin());
     let noisy_ref = stack![Axis(1), x, noise, h];
     let cloud_target = cram::transforms::transformed_cloud(&noisy_ref, &tmat);
 
@@ -52,11 +52,10 @@ fn model(app: &App) -> Model {
     let tf_correspondences = nearest_neighbours(&cloud_ref, &transformed_target);
     let orig_correspondences = nearest_neighbours(&cloud_ref, &cloud_target);
 
-
     Model {
         mouse_pos: pt2(0.0, 0.0),
         cloud_ref,
-        cloud_target, 
+        cloud_target,
         computed_transform: computed_transform, // will eventually bring ref to target
         orig_correspondences,
         tf_correspondences,
@@ -65,15 +64,13 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn update(_app: &App, _model: &mut Model, _update: Update) {
-
-}
+fn update(_app: &App, _model: &mut Model, _update: Update) {}
 
 fn event(_app: &App, model: &mut Model, event: WindowEvent) {
     match event {
         WindowEvent::MouseMoved(pos) => {
             model.mouse_pos = pos;
-        },
+        }
         KeyPressed(Key::Right) => model.show_transformed = true,
         KeyPressed(Key::Left) => model.show_transformed = false,
         KeyPressed(Key::H) => model.show_correspondences = !model.show_correspondences,
@@ -89,30 +86,44 @@ fn view(app: &App, model: &Model, frame: Frame) {
 
     // Draw point clouds
     for row in model.cloud_ref.outer_iter() {
-        let x = row[0]*m2pixel;
-        let y = row[1]*m2pixel;
-        draw.ellipse().x_y(x as f32, y as f32).radius(3.0).color(nannou::color::BLACK);
+        let x = row[0] * m2pixel;
+        let y = row[1] * m2pixel;
+        draw.ellipse()
+            .x_y(x as f32, y as f32)
+            .radius(3.0)
+            .color(nannou::color::BLACK);
     }
 
     let inv_transform = model.computed_transform.inv().unwrap();
-    let transformed_target = cram::transforms::transformed_cloud(&model.cloud_target, &inv_transform);
+    let transformed_target =
+        cram::transforms::transformed_cloud(&model.cloud_target, &inv_transform);
     let cloud_to_display = if model.show_transformed {
         for row in transformed_target.outer_iter() {
-            let x = row[0]*m2pixel;
-            let y = row[1]*m2pixel;
-            draw.ellipse().x_y(x as f32, y as f32).radius(3.0).color(nannou::color::MEDIUMSLATEBLUE);
+            let x = row[0] * m2pixel;
+            let y = row[1] * m2pixel;
+            draw.ellipse()
+                .x_y(x as f32, y as f32)
+                .radius(3.0)
+                .color(nannou::color::MEDIUMSLATEBLUE);
         }
         &transformed_target
     } else {
         for row in model.cloud_target.outer_iter() {
-            let x = row[0]*m2pixel;
-            let y = row[1]*m2pixel;
-            draw.ellipse().x_y(x as f32, y as f32).radius(3.0).color(nannou::color::RED);
+            let x = row[0] * m2pixel;
+            let y = row[1] * m2pixel;
+            draw.ellipse()
+                .x_y(x as f32, y as f32)
+                .radius(3.0)
+                .color(nannou::color::RED);
         }
         &model.cloud_target
     };
 
-    let correspondences_to_display = if model.show_transformed {&model.tf_correspondences} else {&model.orig_correspondences};
+    let correspondences_to_display = if model.show_transformed {
+        &model.tf_correspondences
+    } else {
+        &model.orig_correspondences
+    };
 
     if model.show_correspondences {
         // Draw lines to indicate correspondences
@@ -121,10 +132,12 @@ fn view(app: &App, model: &Model, frame: Frame) {
             let new_pt = model.cloud_ref.index_axis(Axis(0), from);
             let ref_pt = cloud_to_display.index_axis(Axis(0), to);
 
-            let new_pt = vec2(new_pt[0] as f32, new_pt[1] as f32)*m2pixel as f32;
-            let ref_pt = vec2(ref_pt[0] as f32, ref_pt[1] as f32)*m2pixel as f32;
+            let new_pt = vec2(new_pt[0] as f32, new_pt[1] as f32) * m2pixel as f32;
+            let ref_pt = vec2(ref_pt[0] as f32, ref_pt[1] as f32) * m2pixel as f32;
 
-            draw.line().points(new_pt, ref_pt).color(nannou::color::LIME);
+            draw.line()
+                .points(new_pt, ref_pt)
+                .color(nannou::color::LIME);
         }
     }
 
