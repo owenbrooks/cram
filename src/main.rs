@@ -13,8 +13,10 @@ struct Model {
     cloud_ref: Array2<f64>,
     cloud_target: Array2<f64>,
     computed_transform: Array2<f64>,
-    correspondences: Array1<usize>,
-    should_step: bool,
+    orig_correspondences: Array1<usize>,
+    tf_correspondences: Array1<usize>,
+    show_transformed: bool,
+    show_correspondences: bool,
 }
 
 fn model(app: &App) -> Model {
@@ -40,30 +42,31 @@ fn model(app: &App) -> Model {
 
     let correspondences = nearest_neighbours(&cloud_ref, &cloud_target);
 
+    // Perform one ICP iteration and update transform
+    let computed_transform = cram::icp::find_transform(&cloud_ref, &cloud_target, &correspondences);
+
+    println!("transform: {:?}", computed_transform);
+    // Update correspondences
+    let inv_transform = computed_transform.inv().unwrap();
+    let transformed_target = cram::transforms::transformed_cloud(&cloud_target, &inv_transform);
+    let tf_correspondences = nearest_neighbours(&cloud_ref, &transformed_target);
+    let orig_correspondences = nearest_neighbours(&cloud_ref, &cloud_target);
+
+
     Model {
         mouse_pos: pt2(0.0, 0.0),
         cloud_ref,
         cloud_target, 
-        computed_transform: Array::eye(tvec.len()+1), // will eventually bring ref to target
-        correspondences,
-        should_step: false,
+        computed_transform: computed_transform, // will eventually bring ref to target
+        orig_correspondences,
+        tf_correspondences,
+        show_transformed: false,
+        show_correspondences: false,
     }
 }
 
-fn update(_app: &App, model: &mut Model, _update: Update) {
-    if model.should_step {
-        model.should_step = false;
-        // Perform one ICP iteration and update transform
-        let transformed_ref = cram::transforms::transformed_cloud(&model.cloud_ref, &model.computed_transform);
-        let new_transform = cram::icp::find_transform(&transformed_ref, &model.cloud_target, &model.correspondences);
-        model.computed_transform = new_transform.dot(&model.computed_transform);
+fn update(_app: &App, _model: &mut Model, _update: Update) {
 
-        println!("transform: {:?}", model.computed_transform);
-        // Update correspondences
-        let inv_transform = model.computed_transform.inv().unwrap();
-        let transformed_target = cram::transforms::transformed_cloud(&model.cloud_target, &inv_transform);
-        model.correspondences = nearest_neighbours(&model.cloud_ref, &transformed_target);
-    }
 }
 
 fn event(_app: &App, model: &mut Model, event: WindowEvent) {
@@ -71,7 +74,9 @@ fn event(_app: &App, model: &mut Model, event: WindowEvent) {
         WindowEvent::MouseMoved(pos) => {
             model.mouse_pos = pos;
         },
-        KeyPressed(Key::Right) => model.should_step = true,
+        KeyPressed(Key::Right) => model.show_transformed = true,
+        KeyPressed(Key::Left) => model.show_transformed = false,
+        KeyPressed(Key::H) => model.show_correspondences = !model.show_correspondences,
         _other => (),
     }
 }
@@ -91,28 +96,36 @@ fn view(app: &App, model: &Model, frame: Frame) {
 
     let inv_transform = model.computed_transform.inv().unwrap();
     let transformed_target = cram::transforms::transformed_cloud(&model.cloud_target, &inv_transform);
-    for row in transformed_target.outer_iter() {
-        let x = row[0]*m2pixel;
-        let y = row[1]*m2pixel;
-        draw.ellipse().x_y(x as f32, y as f32).radius(3.0).color(nannou::color::MEDIUMSLATEBLUE);
-    }
+    let cloud_to_display = if model.show_transformed {
+        for row in transformed_target.outer_iter() {
+            let x = row[0]*m2pixel;
+            let y = row[1]*m2pixel;
+            draw.ellipse().x_y(x as f32, y as f32).radius(3.0).color(nannou::color::MEDIUMSLATEBLUE);
+        }
+        &transformed_target
+    } else {
+        for row in model.cloud_target.outer_iter() {
+            let x = row[0]*m2pixel;
+            let y = row[1]*m2pixel;
+            draw.ellipse().x_y(x as f32, y as f32).radius(3.0).color(nannou::color::RED);
+        }
+        &model.cloud_target
+    };
 
-    for row in model.cloud_target.outer_iter() {
-        let x = row[0]*m2pixel;
-        let y = row[1]*m2pixel;
-        draw.ellipse().x_y(x as f32, y as f32).radius(3.0).color(nannou::color::RED);
-    }
+    let correspondences_to_display = if model.show_transformed {&model.tf_correspondences} else {&model.orig_correspondences};
 
-    // Draw lines to indicate correspondences
-    for to in 0..model.correspondences.len() {
-        let from = model.correspondences[to];
-        let new_pt = model.cloud_ref.index_axis(Axis(0), from);
-        let ref_pt = transformed_target.index_axis(Axis(0), to);
+    if model.show_correspondences {
+        // Draw lines to indicate correspondences
+        for to in 0..correspondences_to_display.len() {
+            let from = correspondences_to_display[to];
+            let new_pt = model.cloud_ref.index_axis(Axis(0), from);
+            let ref_pt = cloud_to_display.index_axis(Axis(0), to);
 
-        let new_pt = vec2(new_pt[0] as f32, new_pt[1] as f32)*m2pixel as f32;
-        let ref_pt = vec2(ref_pt[0] as f32, ref_pt[1] as f32)*m2pixel as f32;
+            let new_pt = vec2(new_pt[0] as f32, new_pt[1] as f32)*m2pixel as f32;
+            let ref_pt = vec2(ref_pt[0] as f32, ref_pt[1] as f32)*m2pixel as f32;
 
-        draw.line().points(new_pt, ref_pt).color(nannou::color::LIME);
+            draw.line().points(new_pt, ref_pt).color(nannou::color::LIME);
+        }
     }
 
     draw.to_frame(app, &frame).unwrap();
