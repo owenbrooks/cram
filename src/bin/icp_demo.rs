@@ -60,7 +60,7 @@ fn model(app: &App) -> Model {
         orig_correspondences,
         tf_correspondences,
         show_transformed: false,
-        show_correspondences: false,
+        show_correspondences: true,
     }
 }
 
