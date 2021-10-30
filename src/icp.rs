@@ -15,7 +15,7 @@ pub fn nearest_neighbours(reference: &Array2<f64>, new: &Array2<f64>) -> Array1<
 	}
 	let mut result = Vec::new();
 	for i in 0..new.nrows() {
-		let nearest = kdtree.nearest(&[new[[i, 0]], new[[i, 1]]], i, &squared_euclidean);
+		let nearest = kdtree.nearest(&[new[[i, 0]], new[[i, 1]]], 1, &squared_euclidean);
 		if let Ok(nearest) = nearest {
 			if let Some(nearest) = nearest.first() {
 				result.push(*nearest.1);
