@@ -11,3 +11,4 @@ ndarray-linalg = { version = "0.14.1", features = ["intel-mkl-static"] }
 nannou = "0.17.1"
 kdtree = "0.5.1"
 approx = "0.5.0"
+iter_num_tools = "0.6.1"

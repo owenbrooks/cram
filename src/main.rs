@@ -1,15 +1,16 @@
 use nannou::image::io::Reader as ImageReader;
 use nannou::prelude::*;
 use ndarray::prelude::*;
+use cram::lidar;
 fn main() {
-    let x: Array2<f64> = Array::zeros((3, 3));
-    println!("{}", x);
     nannou::app(model).update(update).run();
 }
 
 struct Model {
+    environment: lidar::Environment,
     mouse_pos: Vec2,
     texture: wgpu::Texture,
+    scan: Vec<Point2>,
 }
 
 fn model(app: &App) -> Model {
@@ -29,17 +30,33 @@ fn model(app: &App) -> Model {
         .decode()
         .unwrap()
         .to_rgb8();
-    // let pixels = img.as_raw().to_vec();
-    // let matrix = Array::from_shape_vec((img.height() as usize, img.width() as usize, 3 as usize), pixels).unwrap();
-    // println!("{:?}", matrix.shape());
+
+    let binary_pixels = img.pixels().map(|pixel| pixel[0] < 40 && pixel[1] < 40 && pixel[2] < 40).collect();
+    let grid = Array::from_shape_vec((img.height() as usize, img.width() as usize), binary_pixels).unwrap();
+    println!("{:?}", grid.shape());
+
+    let environment_dims = lidar::Dimension{width: grid.shape()[1], height: grid.shape()[0]};
+
+    let environment = lidar::Environment{
+        grid,
+        dimensions: environment_dims,
+    };
 
     Model {
+        environment,
         mouse_pos: pt2(0.0, 0.0),
         texture,
+        scan: vec![],
     }
 }
 
-fn update(_app: &App, model: &mut Model, _update: Update) {}
+fn update(_app: &App, model: &mut Model, _update: Update) {
+    // println!("{:?}", model.mouse_pos);
+    let coords = lidar::point_to_pixel_coords(model.mouse_pos, model.environment.dimensions);
+    if coords.is_some() {
+        model.scan = lidar::scan_from_point(model.mouse_pos, &model.environment);
+    }
+}
 
 fn event(_app: &App, model: &mut Model, event: WindowEvent) {
     match event {
@@ -55,9 +72,14 @@ fn view(app: &App, model: &Model, frame: Frame) {
     let draw = app.draw();
 
     // Clear the background to purple.
-    draw.background().color(WHITE);
+    draw.background().color(BLACK);
     draw.texture(&model.texture);
-    // println!("{}", model.mouse_pos);
+
+    // Display the current scan points
+    let scan_point_radius = 1.;
+    for pt in &model.scan {
+        draw.ellipse().x_y(pt.x, pt.y).radius(scan_point_radius).color(nannou::color::RED);
+    }
 
     draw.to_frame(app, &frame).unwrap();
 }
