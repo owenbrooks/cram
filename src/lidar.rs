@@ -1,5 +1,7 @@
 use nannou::prelude::{Point2, pt2};
 use iter_num_tools::{lin_space, arange};
+use rand::thread_rng;
+use rand_distr::{Distribution, Normal};
 
 #[derive(Copy, Clone, Debug)]
 pub struct Dimension {
@@ -31,16 +33,21 @@ pub fn scan_from_point(origin: Point2, environment: &Environment) -> Vec<Point2>
 
 	let mut scan_points = vec![];
 	let scan_range: Vec<f32> = scan_range.collect();
+
+	let mut rng = thread_rng();
+	let normal = Normal::new(0.0, 0.5).unwrap();
 	
 	for angle in scan_angles {
 		for dist in &scan_range {
-			let scan_ray = pt2(dist*angle.cos(), dist*angle.sin());
-			let scan_point = origin + scan_ray;
+			let scan_ray = pt2(angle.cos(), angle.sin());
+			let scan_point = origin + *dist*scan_ray;
 			let scan_coords = point_to_pixel_coords(scan_point, environment.dimensions);
 			if let Some(scan_coords) = scan_coords {
 				let object_detected = environment.grid[[scan_coords.y, scan_coords.x]];
 				if object_detected {
-					scan_points.push(scan_point);
+					let noise = normal.sample(&mut rng);
+					let noisy_point = origin + (dist + noise)*scan_ray;
+					scan_points.push(noisy_point);
 					break;
 				}
 			}
