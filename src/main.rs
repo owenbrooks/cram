@@ -11,6 +11,7 @@ struct Model {
     mouse_pos: Vec2,
     texture: wgpu::Texture,
     scan: Vec<Point2>,
+    show_ground_truth: bool,
 }
 
 fn model(app: &App) -> Model {
@@ -47,6 +48,7 @@ fn model(app: &App) -> Model {
         mouse_pos: pt2(0.0, 0.0),
         texture,
         scan: vec![],
+        show_ground_truth: false,
     }
 }
 
@@ -62,7 +64,8 @@ fn event(_app: &App, model: &mut Model, event: WindowEvent) {
     match event {
         WindowEvent::MouseMoved(pos) => {
             model.mouse_pos = pos;
-        }
+        },
+        KeyPressed(Key::M) => model.show_ground_truth = !model.show_ground_truth,
         _other => (),
     }
 }
@@ -71,9 +74,12 @@ fn view(app: &App, model: &Model, frame: Frame) {
     // Prepare to draw.
     let draw = app.draw();
 
-    // Clear the background to purple.
-    draw.background().color(BLACK);
-    draw.texture(&model.texture);
+    if model.show_ground_truth {
+        draw.background().color(WHITE);
+        draw.texture(&model.texture);
+    } else {
+        draw.background().color(BLACK);
+    }
 
     // Display the current scan points
     let scan_point_radius = 1.;
