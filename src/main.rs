@@ -1,7 +1,7 @@
+use cram::lidar;
 use nannou::image::io::Reader as ImageReader;
 use nannou::prelude::*;
 use ndarray::prelude::*;
-use cram::lidar;
 fn main() {
     nannou::app(model).update(update).run();
 }
@@ -32,13 +32,20 @@ fn model(app: &App) -> Model {
         .unwrap()
         .to_rgb8();
 
-    let binary_pixels = img.pixels().map(|pixel| pixel[0] < 40 && pixel[1] < 40 && pixel[2] < 40).collect();
-    let grid = Array::from_shape_vec((img.height() as usize, img.width() as usize), binary_pixels).unwrap();
+    let binary_pixels = img
+        .pixels()
+        .map(|pixel| pixel[0] < 40 && pixel[1] < 40 && pixel[2] < 40)
+        .collect();
+    let grid = Array::from_shape_vec((img.height() as usize, img.width() as usize), binary_pixels)
+        .unwrap();
     println!("{:?}", grid.shape());
 
-    let environment_dims = lidar::Dimension{width: grid.shape()[1], height: grid.shape()[0]};
+    let environment_dims = lidar::Dimension {
+        width: grid.shape()[1],
+        height: grid.shape()[0],
+    };
 
-    let environment = lidar::Environment{
+    let environment = lidar::Environment {
         grid,
         dimensions: environment_dims,
     };
@@ -64,7 +71,7 @@ fn event(_app: &App, model: &mut Model, event: WindowEvent) {
     match event {
         WindowEvent::MouseMoved(pos) => {
             model.mouse_pos = pos;
-        },
+        }
         KeyPressed(Key::M) => model.show_ground_truth = !model.show_ground_truth,
         _other => (),
     }
@@ -84,7 +91,10 @@ fn view(app: &App, model: &Model, frame: Frame) {
     // Display the current scan points
     let scan_point_radius = 1.;
     for pt in &model.scan {
-        draw.ellipse().x_y(pt.x, pt.y).radius(scan_point_radius).color(nannou::color::RED);
+        draw.ellipse()
+            .x_y(pt.x, pt.y)
+            .radius(scan_point_radius)
+            .color(nannou::color::RED);
     }
 
     draw.to_frame(app, &frame).unwrap();
