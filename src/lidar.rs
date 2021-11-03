@@ -34,7 +34,7 @@ pub fn scan_from_point(origin: Point2, environment: &Environment) -> Vec<Point2>
     let scan_range: Vec<f32> = scan_range.collect();
 
     let mut rng = thread_rng();
-    let normal = Normal::new(0.0, 0.5).unwrap();
+    let normal = Normal::new(0.0, 0.0).unwrap();
 
     for angle in scan_angles {
         for dist in &scan_range {

@@ -1,4 +1,4 @@
-use cram::lidar;
+use cram::{diff_drive, lidar};
 use nannou::image::io::Reader as ImageReader;
 use nannou::prelude::*;
 use ndarray::prelude::*;
@@ -12,7 +12,10 @@ struct Model {
     texture: wgpu::Texture,
     scan: Vec<Point2>,
     show_ground_truth: bool,
+    robot: diff_drive::Robot,
 }
+
+const M2PIXEL: f32 = 100.0;
 
 fn model(app: &App) -> Model {
     app.new_window()
@@ -56,14 +59,16 @@ fn model(app: &App) -> Model {
         texture,
         scan: vec![],
         show_ground_truth: false,
+        robot: diff_drive::Robot::new(0.3, 0.2),
     }
 }
 
 fn update(_app: &App, model: &mut Model, _update: Update) {
-    // println!("{:?}", model.mouse_pos);
-    let coords = lidar::point_to_pixel_coords(model.mouse_pos, model.environment.dimensions);
+    model.robot.step(0.167);
+    let robot_coords = pt2(M2PIXEL*model.robot.state.pose.x, M2PIXEL*model.robot.state.pose.y);
+    let coords = lidar::point_to_pixel_coords(robot_coords, model.environment.dimensions);
     if coords.is_some() {
-        model.scan = lidar::scan_from_point(model.mouse_pos, &model.environment);
+        model.scan = lidar::scan_from_point(robot_coords, &model.environment);
     }
 }
 
@@ -73,6 +78,16 @@ fn event(_app: &App, model: &mut Model, event: WindowEvent) {
             model.mouse_pos = pos;
         }
         KeyPressed(Key::M) => model.show_ground_truth = !model.show_ground_truth,
+        KeyPressed(Key::Right) => model.robot.set_command(diff_drive::RobotCommand::TurnRight),
+        KeyPressed(Key::Left) => model.robot.set_command(diff_drive::RobotCommand::TurnLeft),
+        KeyPressed(Key::Up) => model.robot.set_command(diff_drive::RobotCommand::Forward),
+        KeyPressed(Key::Down) => model.robot.set_command(diff_drive::RobotCommand::Back),
+        KeyReleased(key) => {
+            match key {
+                Key::Right | Key::Left | Key::Up | Key::Down => model.robot.set_command(diff_drive::RobotCommand::Stop),
+                _other => (),
+            }
+        }
         _other => (),
     }
 }
@@ -81,6 +96,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
     // Prepare to draw.
     let draw = app.draw();
 
+    // Show or hide ground truth background
     if model.show_ground_truth {
         draw.background().color(WHITE);
         draw.texture(&model.texture);
@@ -96,6 +112,26 @@ fn view(app: &App, model: &Model, frame: Frame) {
             .radius(scan_point_radius)
             .color(nannou::color::RED);
     }
+
+    // Display the current robot state
+    // Circle for position
+    let robot_pose = model.robot.state.pose;
+    draw.ellipse()
+        .x_y(M2PIXEL*robot_pose.x, M2PIXEL*robot_pose.y)
+        .radius(5.)
+        .color(nannou::color::ORANGE);
+    // Line for orientation
+    let line_length = 15.;
+    let start = pt2(M2PIXEL*robot_pose.x, M2PIXEL*robot_pose.y);
+    let end = start
+        + pt2(
+            line_length * robot_pose.theta.cos(),
+            line_length * robot_pose.theta.sin(),
+        );
+    draw.line()
+        .start(start)
+        .end(end)
+        .color(nannou::color::ORANGE);
 
     draw.to_frame(app, &frame).unwrap();
 }
