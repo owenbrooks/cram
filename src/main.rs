@@ -72,7 +72,7 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
     }
 }
 
-fn event(_app: &App, model: &mut Model, event: WindowEvent) {
+fn event(app: &App, model: &mut Model, event: WindowEvent) {
     match event {
         WindowEvent::MouseMoved(pos) => {
             model.mouse_pos = pos;
@@ -84,7 +84,24 @@ fn event(_app: &App, model: &mut Model, event: WindowEvent) {
         KeyPressed(Key::Down) => model.robot.set_command(diff_drive::RobotCommand::Back),
         KeyReleased(key) => {
             match key {
-                Key::Right | Key::Left | Key::Up | Key::Down => model.robot.set_command(diff_drive::RobotCommand::Stop),
+                Key::Right | Key::Left => {
+                    if app.keys.down.contains(&Key::Up) {
+                        model.robot.set_command(diff_drive::RobotCommand::Forward);
+                    } else if app.keys.down.contains(&Key::Down) {
+                        model.robot.set_command(diff_drive::RobotCommand::Back);
+                    } else {
+                        model.robot.set_command(diff_drive::RobotCommand::Stop);
+                    }
+                },
+                Key::Up | Key::Down => {
+                    if app.keys.down.contains(&Key::Right) {
+                        model.robot.set_command(diff_drive::RobotCommand::TurnRight);
+                    } else if app.keys.down.contains(&Key::Left) {
+                        model.robot.set_command(diff_drive::RobotCommand::TurnLeft);
+                    } else {
+                        model.robot.set_command(diff_drive::RobotCommand::Stop);
+                    }
+                },
                 _other => (),
             }
         }
