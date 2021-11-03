@@ -29,7 +29,6 @@ pub struct RobotState {
 pub struct Robot {
     pub state: RobotState,
     wheel_base: f32,
-    wheel_radius: f32,
     command: RobotCommand,
 }
 
@@ -37,10 +36,9 @@ const TURN_VEL: f32 = 0.1;
 const LINEAR_VEL: f32 = 0.1;
 
 impl Robot {
-    pub fn new(wheel_base: f32, wheel_radius: f32) -> Self {
+    pub fn new(wheel_base: f32) -> Self {
         Robot {
             wheel_base,
-            wheel_radius,
             state: RobotState {
                 pose: Pose {
                     x: 0.,
@@ -56,7 +54,6 @@ impl Robot {
         }
     }
     pub fn set_command(&mut self, command: RobotCommand) {
-        // println!("{:?}", command);
         self.command = command;
     }
     pub fn step(&mut self, time_step: f32) {
@@ -91,7 +88,6 @@ impl Robot {
         let y_dot = linear_vel * self.state.pose.theta.sin();
         let theta_dot = angular_vel / self.wheel_base;
 
-		println!("{:?}", self.state);
         let new_state = RobotState {
             pose: Pose {
                 x: self.state.pose.x + x_dot * time_step,

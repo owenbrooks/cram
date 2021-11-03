@@ -1,3 +1,4 @@
+#![allow(clippy::many_single_char_names)]
 use crate::transforms::*;
 use approx::abs_diff_eq;
 use kdtree::distance::squared_euclidean;
@@ -62,7 +63,5 @@ pub fn find_transform(
     }; // TODO: solve the non-1 case
     let t = p_dash - rmat.dot(&p);
 
-    let tmat = rmat_and_tvec_to_tmat(&rmat, &t);
-
-    tmat
+    rmat_and_tvec_to_tmat(&rmat, &t)
 }

@@ -1,3 +1,4 @@
+#![allow(clippy::many_single_char_names)]
 use ndarray::prelude::*;
 
 pub fn angle_to_rmat(theta: f64) -> Array2<f64> {

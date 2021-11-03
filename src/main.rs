@@ -13,6 +13,7 @@ struct Model {
     scan: Vec<Point2>,
     show_ground_truth: bool,
     robot: diff_drive::Robot,
+    mouse_is_lidar: bool,
 }
 
 const M2PIXEL: f32 = 100.0;
@@ -59,13 +60,21 @@ fn model(app: &App) -> Model {
         texture,
         scan: vec![],
         show_ground_truth: false,
-        robot: diff_drive::Robot::new(0.3, 0.2),
+        robot: diff_drive::Robot::new(0.3),
+        mouse_is_lidar: true,
     }
 }
 
 fn update(_app: &App, model: &mut Model, _update: Update) {
     model.robot.step(0.167);
-    let robot_coords = pt2(M2PIXEL*model.robot.state.pose.x, M2PIXEL*model.robot.state.pose.y);
+    let robot_coords = if model.mouse_is_lidar {
+        model.mouse_pos
+    } else {
+        pt2(
+            M2PIXEL * model.robot.state.pose.x,
+            M2PIXEL * model.robot.state.pose.y,
+        )
+    };
     let coords = lidar::point_to_pixel_coords(robot_coords, model.environment.dimensions);
     if coords.is_some() {
         model.scan = lidar::scan_from_point(robot_coords, &model.environment);
@@ -78,33 +87,33 @@ fn event(app: &App, model: &mut Model, event: WindowEvent) {
             model.mouse_pos = pos;
         }
         KeyPressed(Key::M) => model.show_ground_truth = !model.show_ground_truth,
+        KeyPressed(Key::L) => model.mouse_is_lidar = !model.mouse_is_lidar,
+        // Robot movement with arrow keys
         KeyPressed(Key::Right) => model.robot.set_command(diff_drive::RobotCommand::TurnRight),
         KeyPressed(Key::Left) => model.robot.set_command(diff_drive::RobotCommand::TurnLeft),
         KeyPressed(Key::Up) => model.robot.set_command(diff_drive::RobotCommand::Forward),
         KeyPressed(Key::Down) => model.robot.set_command(diff_drive::RobotCommand::Back),
-        KeyReleased(key) => {
-            match key {
-                Key::Right | Key::Left => {
-                    if app.keys.down.contains(&Key::Up) {
-                        model.robot.set_command(diff_drive::RobotCommand::Forward);
-                    } else if app.keys.down.contains(&Key::Down) {
-                        model.robot.set_command(diff_drive::RobotCommand::Back);
-                    } else {
-                        model.robot.set_command(diff_drive::RobotCommand::Stop);
-                    }
-                },
-                Key::Up | Key::Down => {
-                    if app.keys.down.contains(&Key::Right) {
-                        model.robot.set_command(diff_drive::RobotCommand::TurnRight);
-                    } else if app.keys.down.contains(&Key::Left) {
-                        model.robot.set_command(diff_drive::RobotCommand::TurnLeft);
-                    } else {
-                        model.robot.set_command(diff_drive::RobotCommand::Stop);
-                    }
-                },
-                _other => (),
+        KeyReleased(key) => match key {
+            Key::Right | Key::Left => {
+                if app.keys.down.contains(&Key::Up) {
+                    model.robot.set_command(diff_drive::RobotCommand::Forward);
+                } else if app.keys.down.contains(&Key::Down) {
+                    model.robot.set_command(diff_drive::RobotCommand::Back);
+                } else {
+                    model.robot.set_command(diff_drive::RobotCommand::Stop);
+                }
             }
-        }
+            Key::Up | Key::Down => {
+                if app.keys.down.contains(&Key::Right) {
+                    model.robot.set_command(diff_drive::RobotCommand::TurnRight);
+                } else if app.keys.down.contains(&Key::Left) {
+                    model.robot.set_command(diff_drive::RobotCommand::TurnLeft);
+                } else {
+                    model.robot.set_command(diff_drive::RobotCommand::Stop);
+                }
+            }
+            _other => (),
+        },
         _other => (),
     }
 }
@@ -131,24 +140,26 @@ fn view(app: &App, model: &Model, frame: Frame) {
     }
 
     // Display the current robot state
-    // Circle for position
-    let robot_pose = model.robot.state.pose;
-    draw.ellipse()
-        .x_y(M2PIXEL*robot_pose.x, M2PIXEL*robot_pose.y)
-        .radius(5.)
-        .color(nannou::color::ORANGE);
-    // Line for orientation
-    let line_length = 15.;
-    let start = pt2(M2PIXEL*robot_pose.x, M2PIXEL*robot_pose.y);
-    let end = start
-        + pt2(
-            line_length * robot_pose.theta.cos(),
-            line_length * robot_pose.theta.sin(),
-        );
-    draw.line()
-        .start(start)
-        .end(end)
-        .color(nannou::color::ORANGE);
+    if !model.mouse_is_lidar {
+        // Circle for position
+        let robot_pose = model.robot.state.pose;
+        draw.ellipse()
+            .x_y(M2PIXEL * robot_pose.x, M2PIXEL * robot_pose.y)
+            .radius(5.)
+            .color(nannou::color::ORANGE);
+        // Line for orientation
+        let line_length = 15.;
+        let start = pt2(M2PIXEL * robot_pose.x, M2PIXEL * robot_pose.y);
+        let end = start
+            + pt2(
+                line_length * robot_pose.theta.cos(),
+                line_length * robot_pose.theta.sin(),
+            );
+        draw.line()
+            .start(start)
+            .end(end)
+            .color(nannou::color::ORANGE);
+    }
 
     draw.to_frame(app, &frame).unwrap();
 }
