@@ -1,4 +1,4 @@
-use cram::{diff_drive, lidar};
+use cram::{diff_drive, lidar, draw, pose_graph};
 use nannou::image::io::Reader as ImageReader;
 use nannou::prelude::*;
 use ndarray::prelude::*;
@@ -14,6 +14,7 @@ struct Model {
     show_ground_truth: bool,
     robot: diff_drive::Robot,
     mouse_is_lidar: bool,
+    pose_graph: pose_graph::PoseGraph,
 }
 
 const M2PIXEL: f32 = 100.0;
@@ -54,6 +55,11 @@ fn model(app: &App) -> Model {
         dimensions: environment_dims,
     };
 
+    let pose_graph = pose_graph::PoseGraph {
+        nodes: vec![array![[1.,0.,0.], [0.,1.,0.], [0.,0.,1.]]],
+        edges: vec![],
+    };
+
     Model {
         environment,
         mouse_pos: pt2(0.0, 0.0),
@@ -61,6 +67,7 @@ fn model(app: &App) -> Model {
         scan: vec![],
         show_ground_truth: false,
         robot: diff_drive::Robot::new(0.3),
+        pose_graph,
         mouse_is_lidar: true,
     }
 }
@@ -88,6 +95,8 @@ fn event(app: &App, model: &mut Model, event: WindowEvent) {
         }
         KeyPressed(Key::M) => model.show_ground_truth = !model.show_ground_truth,
         KeyPressed(Key::L) => model.mouse_is_lidar = !model.mouse_is_lidar,
+        // Take measurement with space bar
+        KeyPressed(Key::Space) => model.pose_graph.add_measurement(model.robot.state.pose),
         // Robot movement with arrow keys
         KeyPressed(Key::Right) => model.robot.set_command(diff_drive::RobotCommand::TurnRight),
         KeyPressed(Key::Left) => model.robot.set_command(diff_drive::RobotCommand::TurnLeft),
@@ -141,25 +150,11 @@ fn view(app: &App, model: &Model, frame: Frame) {
 
     // Display the current robot state
     if !model.mouse_is_lidar {
-        // Circle for position
-        let robot_pose = model.robot.state.pose;
-        draw.ellipse()
-            .x_y(M2PIXEL * robot_pose.x, M2PIXEL * robot_pose.y)
-            .radius(5.)
-            .color(nannou::color::ORANGE);
-        // Line for orientation
-        let line_length = 15.;
-        let start = pt2(M2PIXEL * robot_pose.x, M2PIXEL * robot_pose.y);
-        let end = start
-            + pt2(
-                line_length * robot_pose.theta.cos(),
-                line_length * robot_pose.theta.sin(),
-            );
-        draw.line()
-            .start(start)
-            .end(end)
-            .color(nannou::color::ORANGE);
+        draw::draw_pose(model.robot.state.pose, &draw, M2PIXEL, nannou::color::ORANGE);
     }
+
+    // Display the pose graph
+    draw::draw_pose_graph(&model.pose_graph, &draw, M2PIXEL);
 
     draw.to_frame(app, &frame).unwrap();
 }
