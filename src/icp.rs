@@ -38,7 +38,6 @@ pub fn find_transform(
     _correspondences: &Array1<usize>,
 ) -> Array2<f64> {
     let point_count = min(from.nrows(), to.nrows()); // TODO: use corresponding points rather than hardcoding min point count
-    println!("{}, {}", from.nrows(), to.nrows());
     let p = from
         .slice(s![..point_count - 1, ..from.ncols() - 1])
         .mean_axis(Axis(0))
@@ -58,15 +57,18 @@ pub fn find_transform(
     let v = vt.t();
     let x = v.dot(&u.t());
     let det_x = x.det().unwrap();
+    println!("v {:?}", v);
 
     let rmat = if abs_diff_eq!(det_x, 1., epsilon = 0.00001) {
         x
     } else {
+        // Det is not +1, so it is -1
+        // We take the rotation instead 
         println!("det(x) = {}", det_x);
         let mut v_dash: Array2<f64> = v.to_owned();
-        let neg_col3 = -v_dash.slice(s![2, ..]).to_owned();
-        v_dash.slice_mut(s![2, ..]).assign(&neg_col3);
-        println!("{:?}", v_dash);
+        println!("v_dash {:?}", v_dash);
+        let neg_col2 = -v_dash.slice(s![.., 1]).to_owned();
+        v_dash.slice_mut(s![.., 1]).assign(&neg_col2);
         v_dash.dot(&u.t())
         // TODO check whether the singular values are zero and use RANSAC instead
     };

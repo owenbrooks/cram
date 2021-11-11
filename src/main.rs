@@ -1,4 +1,4 @@
-use cram::{diff_drive, lidar, draw, pose_graph, icp};
+use cram::{diff_drive, lidar, draw, pose_graph, icp, transforms};
 use nannou::image::io::Reader as ImageReader;
 use nannou::prelude::*;
 use ndarray::prelude::*;
@@ -86,7 +86,7 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
     };
     let coords = lidar::point_to_pixel_coords(robot_coords, model.environment.dimensions);
     if coords.is_some() {
-        model.scan = lidar::scan_from_point(robot_coords, &model.environment);
+        model.scan = lidar::scan_from_point(robot_coords, &model.environment, M2PIXEL);
     }
 }
 
@@ -102,6 +102,7 @@ fn event(app: &App, model: &mut Model, event: WindowEvent) {
             if model.prev_scan.len() > 0 {
                 let pose_est = icp::estimate_pose(&model.scan, &model.prev_scan, &model.pose_graph);
                 model.pose_graph.add_measurement(pose_est);
+                println!("Actual tf {:?}", transforms::pose_to_trans(model.robot.state.pose));
             }
             model.prev_scan = model.scan.clone();
         },
@@ -147,14 +148,9 @@ fn view(app: &App, model: &Model, frame: Frame) {
         draw.background().color(BLACK);
     }
 
-    // Display the current scan points
-    let scan_point_radius = 1.;
-    for pt in &model.scan {
-        draw.ellipse()
-            .x_y(pt.x, pt.y)
-            .radius(scan_point_radius)
-            .color(nannou::color::RED);
-    }
+    // Display the current and previous scan points
+    draw::draw_scan_points(&model.scan, &draw, M2PIXEL, nannou::color::RED);
+    draw::draw_scan_points(&model.prev_scan, &draw, M2PIXEL, nannou::color::WHITE);
 
     // Display the current robot state
     if !model.mouse_is_lidar {

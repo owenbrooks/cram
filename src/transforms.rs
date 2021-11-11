@@ -34,3 +34,11 @@ pub fn trans_to_pose(tf_matrix: &Array2<f64>) -> Pose {
     let y = tf_matrix[[1, 2]] as f32;
     Pose {x, y, theta}
 }
+
+pub fn pose_to_trans(pose: Pose) -> Array2<f64> {
+    array![
+        [pose.theta.cos() as f64, -pose.theta.sin() as f64, pose.x as f64],
+        [pose.theta.sin() as f64, pose.theta.cos() as f64, pose.y as f64],
+        [0., 0., 1.],
+    ]
+}
