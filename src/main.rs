@@ -70,7 +70,7 @@ fn model(app: &App) -> Model {
         show_ground_truth: false,
         robot: diff_drive::Robot::new(0.3),
         pose_graph,
-        mouse_is_lidar: true,
+        mouse_is_lidar: false,
     }
 }
 

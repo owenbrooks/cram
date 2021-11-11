@@ -6,6 +6,7 @@ use kdtree::distance::squared_euclidean;
 use kdtree::KdTree;
 use ndarray::{prelude::*, stack};
 use ndarray_linalg::{solve::Determinant, svd::*};
+use std::cmp::min;
 
 // input: two point clouds, reference (dimension mxn) and new (dimension wxn)
 // output: vector of indices of the points in reference that are closest to the points in new, length w
@@ -36,17 +37,19 @@ pub fn find_transform(
     to: &Array2<f64>, // must be homogenous: x, y, 1
     _correspondences: &Array1<usize>,
 ) -> Array2<f64> {
+    let point_count = min(from.nrows(), to.nrows()); // TODO: use corresponding points rather than hardcoding min point count
+    println!("{}, {}", from.nrows(), to.nrows());
     let p = from
-        .slice(s![.., ..from.ncols() - 1])
+        .slice(s![..point_count - 1, ..from.ncols() - 1])
         .mean_axis(Axis(0))
         .unwrap();
     let p_dash = to
-        .slice(s![.., ..to.ncols() - 1])
+        .slice(s![..point_count - 1, ..to.ncols() - 1])
         .mean_axis(Axis(0))
         .unwrap();
 
-    let qi = from.slice(s![.., ..from.ncols() - 1]).to_owned() - &p;
-    let qi_dash = to.slice(s![.., ..to.ncols() - 1]).to_owned() - &p;
+    let qi = from.slice(s![..point_count - 1, ..from.ncols() - 1]).to_owned() - &p;
+    let qi_dash = to.slice(s![..point_count - 1, ..to.ncols() - 1]).to_owned() - &p;
             
     let h = qi.t().dot(&qi_dash);
     let svd = h.svd(true, true).unwrap();
@@ -83,9 +86,9 @@ fn vec_point2_to_homog(orig_vec: &Vec<Point2>) -> Array2<f64> {
 pub fn estimate_pose(new_scan: &Vec<Point2>, prev_scan: &Vec<Point2>, pose_graph: &pose_graph::PoseGraph) -> Pose {
     let new_scan = vec_point2_to_homog(new_scan);
     let prev_scan = vec_point2_to_homog(prev_scan);
-    println!("new_scan {:?}", new_scan);
 
-    let transform = find_transform(&new_scan, &prev_scan, &array![]);
+    let correspondences = nearest_neighbours(&new_scan, &prev_scan);
+    let transform = find_transform(&new_scan, &prev_scan, &correspondences);
     let prev_pose = pose_graph.nodes.last();
     match prev_pose {
         Some(prev_pose) => {
