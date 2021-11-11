@@ -1,5 +1,6 @@
 #![allow(clippy::many_single_char_names)]
 use ndarray::prelude::*;
+use crate::diff_drive::Pose;
 
 pub fn angle_to_rmat(theta: f64) -> Array2<f64> {
     let c = theta.cos();
@@ -24,4 +25,12 @@ pub fn transformed_cloud(cloud_ref: &Array2<f64>, tmat: &Array2<f64>) -> Array2<
         row.assign(&new_pt);
     }
     cloud_target
+}
+
+// Converts 3x3 2D transformation matrix to x,y,theta pose representation
+pub fn trans_to_pose(tf_matrix: &Array2<f64>) -> Pose {
+    let theta = -tf_matrix[[0, 1]].atan2(tf_matrix[[0, 0]]) as f32;
+    let x = tf_matrix[[0, 2]] as f32;
+    let y = tf_matrix[[1, 2]] as f32;
+    Pose {x, y, theta}
 }

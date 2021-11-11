@@ -1,4 +1,4 @@
-use cram::{diff_drive, lidar, draw, pose_graph};
+use cram::{diff_drive, lidar, draw, pose_graph, icp};
 use nannou::image::io::Reader as ImageReader;
 use nannou::prelude::*;
 use ndarray::prelude::*;
@@ -11,6 +11,7 @@ struct Model {
     mouse_pos: Vec2,
     texture: wgpu::Texture,
     scan: Vec<Point2>,
+    prev_scan: Vec<Point2>,
     show_ground_truth: bool,
     robot: diff_drive::Robot,
     mouse_is_lidar: bool,
@@ -65,6 +66,7 @@ fn model(app: &App) -> Model {
         mouse_pos: pt2(0.0, 0.0),
         texture,
         scan: vec![],
+        prev_scan: vec![],
         show_ground_truth: false,
         robot: diff_drive::Robot::new(0.3),
         pose_graph,
@@ -96,7 +98,13 @@ fn event(app: &App, model: &mut Model, event: WindowEvent) {
         KeyPressed(Key::M) => model.show_ground_truth = !model.show_ground_truth,
         KeyPressed(Key::L) => model.mouse_is_lidar = !model.mouse_is_lidar,
         // Take measurement with space bar
-        KeyPressed(Key::Space) => model.pose_graph.add_measurement(model.robot.state.pose),
+        KeyPressed(Key::Space) => {
+            if model.prev_scan.len() > 0 {
+                let pose_est = icp::estimate_pose(&model.scan, &model.prev_scan, &model.pose_graph);
+                model.pose_graph.add_measurement(pose_est);
+            }
+            model.prev_scan = model.scan.clone();
+        },
         // Robot movement with arrow keys
         KeyPressed(Key::Right) => model.robot.set_command(diff_drive::RobotCommand::TurnRight),
         KeyPressed(Key::Left) => model.robot.set_command(diff_drive::RobotCommand::TurnLeft),

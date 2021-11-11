@@ -1,4 +1,4 @@
-use crate::{diff_drive, pose_graph::PoseGraph};
+use crate::{diff_drive, pose_graph::PoseGraph, transforms};
 use nannou::prelude::*;
 
 pub fn draw_pose(pose: diff_drive::Pose, draw: &Draw, m2pixel: f32, color: nannou::color::Rgb8) {
@@ -23,10 +23,7 @@ pub fn draw_pose(pose: diff_drive::Pose, draw: &Draw, m2pixel: f32, color: nanno
 
 pub fn draw_pose_graph(pose_graph: &PoseGraph, draw: &Draw, m2pixel: f32) {
     for node in &pose_graph.nodes {
-        let theta = -node[[0, 1]].atan2(node[[0, 0]]);
-        let x = node[[0, 2]];
-        let y = node[[1, 2]];
-		let pose = diff_drive::Pose {x, y, theta};
+        let pose = transforms::trans_to_pose(node);
 		draw_pose(pose, draw, m2pixel, nannou::color::PURPLE);
     }
 }

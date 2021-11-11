@@ -1,9 +1,10 @@
 #![allow(clippy::many_single_char_names)]
-use crate::transforms::*;
+use crate::{transforms::*, pose_graph, diff_drive::Pose};
+use nannou::geom::Point2;
 use approx::abs_diff_eq;
 use kdtree::distance::squared_euclidean;
 use kdtree::KdTree;
-use ndarray::prelude::*;
+use ndarray::{prelude::*, stack};
 use ndarray_linalg::{solve::Determinant, svd::*};
 
 // input: two point clouds, reference (dimension mxn) and new (dimension wxn)
@@ -31,8 +32,8 @@ pub fn nearest_neighbours(reference: &Array2<f64>, new: &Array2<f64>) -> Array1<
 // performs one iteration of ICP algorithm to find transform from target to reference
 // uses SVD-based algorithm described in Least-Squares Fitting of Two 3-D Point Sets by K. S. ARUN
 pub fn find_transform(
-    from: &Array2<f64>,
-    to: &Array2<f64>,
+    from: &Array2<f64>, // must be homogenous: x, y, 1
+    to: &Array2<f64>, // must be homogenous: x, y, 1
     _correspondences: &Array1<usize>,
 ) -> Array2<f64> {
     let p = from
@@ -46,7 +47,7 @@ pub fn find_transform(
 
     let qi = from.slice(s![.., ..from.ncols() - 1]).to_owned() - &p;
     let qi_dash = to.slice(s![.., ..to.ncols() - 1]).to_owned() - &p;
-
+            
     let h = qi.t().dot(&qi_dash);
     let svd = h.svd(true, true).unwrap();
     let u = svd.0.unwrap();
@@ -58,10 +59,47 @@ pub fn find_transform(
     let rmat = if abs_diff_eq!(det_x, 1., epsilon = 0.00001) {
         x
     } else {
-        println!("{}", det_x);
-        panic!("Algorithm failed since det(x) != +1");
-    }; // TODO: solve the non-1 case
+        println!("det(x) = {}", det_x);
+        let mut v_dash: Array2<f64> = v.to_owned();
+        let neg_col3 = -v_dash.slice(s![2, ..]).to_owned();
+        v_dash.slice_mut(s![2, ..]).assign(&neg_col3);
+        println!("{:?}", v_dash);
+        v_dash.dot(&u.t())
+        // TODO check whether the singular values are zero and use RANSAC instead
+    };
     let t = p_dash - rmat.dot(&p);
 
     rmat_and_tvec_to_tmat(&rmat, &t)
+}
+
+fn vec_point2_to_homog(orig_vec: &Vec<Point2>) -> Array2<f64> {
+    let x = Array::from_iter(orig_vec.into_iter().map(|point| point.x as f64));
+    let y = Array::from_iter(orig_vec.into_iter().map(|point| point.y as f64));
+    let h = Array::ones(orig_vec.len());
+    
+    stack![Axis(1), x, y, h]
+}
+
+pub fn estimate_pose(new_scan: &Vec<Point2>, prev_scan: &Vec<Point2>, pose_graph: &pose_graph::PoseGraph) -> Pose {
+    let new_scan = vec_point2_to_homog(new_scan);
+    let prev_scan = vec_point2_to_homog(prev_scan);
+    println!("new_scan {:?}", new_scan);
+
+    let transform = find_transform(&new_scan, &prev_scan, &array![]);
+    let prev_pose = pose_graph.nodes.last();
+    match prev_pose {
+        Some(prev_pose) => {
+            println!("tf {:?}", transform);
+            let new_pose = transform.dot(prev_pose);
+            println!("{:?}", trans_to_pose(&new_pose));
+            trans_to_pose(&new_pose)
+        },
+        None => {
+            Pose {
+                x: 0.,
+                y: 0.,
+                theta: 0.,
+            }
+        }
+    }
 }
