@@ -5,7 +5,7 @@ use approx::abs_diff_eq;
 use kdtree::distance::squared_euclidean;
 use kdtree::KdTree;
 use ndarray::{prelude::*, stack};
-use ndarray_linalg::{solve::Determinant, svd::*};
+use ndarray_linalg::{solve::Determinant, svd::*, Inverse};
 use std::cmp::min;
 
 // input: two point clouds, reference (dimension mxn) and new (dimension wxn)
@@ -93,7 +93,7 @@ pub fn estimate_pose(new_scan: &Vec<Point2>, prev_scan: &Vec<Point2>, pose_graph
     match prev_pose {
         Some(prev_pose) => {
             println!("tf {:?}", transform);
-            let new_pose = transform.dot(prev_pose);
+            let new_pose = transform.inv().unwrap().dot(prev_pose);
             println!("{:?}", trans_to_pose(&new_pose));
             trans_to_pose(&new_pose)
         },

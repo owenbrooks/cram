@@ -176,7 +176,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
             model.robot.state.pose,
             &draw,
             M2PIXEL,
-            nannou::color::ORANGE,
+            Rgba8::from(ORANGE),
         );
     }
 

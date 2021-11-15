@@ -1,7 +1,7 @@
 use crate::{diff_drive, pose_graph::PoseGraph, transforms};
 use nannou::prelude::*;
 
-pub fn draw_pose(pose: diff_drive::Pose, draw: &Draw, m2pixel: f32, color: nannou::color::Rgb8) {
+pub fn draw_pose(pose: diff_drive::Pose, draw: &Draw, m2pixel: f32, color: nannou::color::Rgba8) {
     // Circle for position
     draw.ellipse()
         .x_y(m2pixel * pose.x, m2pixel * pose.y)
@@ -22,9 +22,18 @@ pub fn draw_pose(pose: diff_drive::Pose, draw: &Draw, m2pixel: f32, color: nanno
 }
 
 pub fn draw_pose_graph(pose_graph: &PoseGraph, draw: &Draw, m2pixel: f32) {
-    for node in &pose_graph.nodes {
+    let visible_poses = 10;
+    let step: u8 = 255 / visible_poses;
+    let alpha_vals = (0..pose_graph.nodes.len()).into_iter().rev().map(|i| {
+        if i < visible_poses as usize {
+            255 - step*(i as u8)
+        } else {
+            0
+        }
+    }).into_iter();
+    for (node, alpha) in pose_graph.nodes.iter().zip(alpha_vals) {
         let pose = transforms::trans_to_pose(node);
-		draw_pose(pose, draw, m2pixel, nannou::color::PURPLE);
+		draw_pose(pose, draw, m2pixel, rgba(194, 61, 255, alpha));
     }
 }
 
