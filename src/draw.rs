@@ -28,11 +28,11 @@ pub fn draw_pose_graph(pose_graph: &PoseGraph, draw: &Draw, m2pixel: f32) {
     }
 }
 
-pub fn draw_scan_points(points: &Vec<Point2>, draw: &Draw, m2pixel: f32, color: nannou::color::Rgb8) {
+pub fn draw_scan_points(points: &Vec<Point2>, draw: &Draw, m2pixel: f32, color: nannou::color::Rgb8, origin: diff_drive::Pose) {
     let scan_point_radius = 1.;
     for pt in points {
         draw.ellipse()
-            .x_y(m2pixel * pt.x, m2pixel * pt.y)
+            .x_y(m2pixel * (pt.x + origin.x), m2pixel * (pt.y + origin.y))
             .radius(scan_point_radius)
             .color(color);
     }

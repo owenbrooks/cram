@@ -57,7 +57,6 @@ pub fn find_transform(
     let v = vt.t();
     let x = v.dot(&u.t());
     let det_x = x.det().unwrap();
-    println!("v {:?}", v);
 
     let rmat = if abs_diff_eq!(det_x, 1., epsilon = 0.00001) {
         x
@@ -66,7 +65,6 @@ pub fn find_transform(
         // We take the rotation instead 
         println!("det(x) = {}", det_x);
         let mut v_dash: Array2<f64> = v.to_owned();
-        println!("v_dash {:?}", v_dash);
         let neg_col2 = -v_dash.slice(s![.., 1]).to_owned();
         v_dash.slice_mut(s![.., 1]).assign(&neg_col2);
         v_dash.dot(&u.t())
@@ -90,7 +88,7 @@ pub fn estimate_pose(new_scan: &Vec<Point2>, prev_scan: &Vec<Point2>, pose_graph
     let prev_scan = vec_point2_to_homog(prev_scan);
 
     let correspondences = nearest_neighbours(&new_scan, &prev_scan);
-    let transform = find_transform(&new_scan, &prev_scan, &correspondences);
+    let transform = find_transform(&prev_scan, &new_scan, &correspondences);
     let prev_pose = pose_graph.nodes.last();
     match prev_pose {
         Some(prev_pose) => {

@@ -25,7 +25,8 @@ pub fn point_to_pixel_coords(mouse_pos: Point2, environment_dims: Dimension) -> 
 }
 
 pub fn scan_from_point(origin: Point2, environment: &Environment, m2pixel: f32) -> Vec<Point2> {
-    let scan_angles = lin_space(0.0..std::f32::consts::PI * 2.0, 4);
+    // output is in the frame of the robot
+    let scan_angles = lin_space(0.0..std::f32::consts::PI * 2.0, 128);
     let max_scan_distance = 250.;
     let scan_step = 1.;
     let scan_range = arange(0.0..max_scan_distance, scan_step);
@@ -45,7 +46,7 @@ pub fn scan_from_point(origin: Point2, environment: &Environment, m2pixel: f32) 
                 let object_detected = environment.grid[[scan_coords.y, scan_coords.x]];
                 if object_detected {
                     let noise = normal.sample(&mut rng);
-                    let noisy_point = origin + (dist + noise) * scan_ray;
+                    let noisy_point = (dist + noise) * scan_ray;
                     let noisy_point = noisy_point / m2pixel;
                     scan_points.push(noisy_point);
                     break;

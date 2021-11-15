@@ -1,4 +1,4 @@
-use cram::{diff_drive, lidar, draw, pose_graph, icp, transforms};
+use cram::{diff_drive, draw, icp, lidar, pose_graph, transforms};
 use nannou::image::io::Reader as ImageReader;
 use nannou::prelude::*;
 use ndarray::prelude::*;
@@ -57,7 +57,7 @@ fn model(app: &App) -> Model {
     };
 
     let pose_graph = pose_graph::PoseGraph {
-        nodes: vec![array![[1.,0.,0.], [0.,1.,0.], [0.,0.,1.]]],
+        nodes: vec![array![[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]]],
         edges: vec![],
     };
 
@@ -102,10 +102,13 @@ fn event(app: &App, model: &mut Model, event: WindowEvent) {
             if model.prev_scan.len() > 0 {
                 let pose_est = icp::estimate_pose(&model.scan, &model.prev_scan, &model.pose_graph);
                 model.pose_graph.add_measurement(pose_est);
-                println!("Actual tf {:?}", transforms::pose_to_trans(model.robot.state.pose));
+                println!(
+                    "Actual tf {:?}",
+                    transforms::pose_to_trans(model.robot.state.pose)
+                );
             }
             model.prev_scan = model.scan.clone();
-        },
+        }
         // Robot movement with arrow keys
         KeyPressed(Key::Right) => model.robot.set_command(diff_drive::RobotCommand::TurnRight),
         KeyPressed(Key::Left) => model.robot.set_command(diff_drive::RobotCommand::TurnLeft),
@@ -149,12 +152,32 @@ fn view(app: &App, model: &Model, frame: Frame) {
     }
 
     // Display the current and previous scan points
-    draw::draw_scan_points(&model.scan, &draw, M2PIXEL, nannou::color::RED);
-    draw::draw_scan_points(&model.prev_scan, &draw, M2PIXEL, nannou::color::WHITE);
+    draw::draw_scan_points(
+        &model.scan,
+        &draw,
+        M2PIXEL,
+        nannou::color::RED,
+        model.robot.state.pose,
+    );
+
+    if let Some(last_pose) = &model.pose_graph.nodes.last() {
+        draw::draw_scan_points(
+            &model.prev_scan,
+            &draw,
+            M2PIXEL,
+            nannou::color::WHITE,
+            transforms::trans_to_pose(last_pose),
+        );
+    }
 
     // Display the current robot state
     if !model.mouse_is_lidar {
-        draw::draw_pose(model.robot.state.pose, &draw, M2PIXEL, nannou::color::ORANGE);
+        draw::draw_pose(
+            model.robot.state.pose,
+            &draw,
+            M2PIXEL,
+            nannou::color::ORANGE,
+        );
     }
 
     // Display the pose graph
