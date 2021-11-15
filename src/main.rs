@@ -57,7 +57,7 @@ fn model(app: &App) -> Model {
     };
 
     let pose_graph = pose_graph::PoseGraph {
-        nodes: vec![array![[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]]],
+        nodes: vec![],
         edges: vec![],
     };
 
@@ -106,6 +106,8 @@ fn event(app: &App, model: &mut Model, event: WindowEvent) {
                     "Actual tf {:?}",
                     transforms::pose_to_trans(model.robot.state.pose)
                 );
+            } else {
+                model.pose_graph.add_measurement(model.robot.state.pose); // use ground truth pose for initial estimate only
             }
             model.prev_scan = model.scan.clone();
         }
