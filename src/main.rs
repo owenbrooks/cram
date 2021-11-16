@@ -135,27 +135,30 @@ fn event(app: &App, model: &mut Model, event: WindowEvent) {
         KeyPressed(Key::Left) => model.robot.set_command(diff_drive::RobotCommand::TurnLeft),
         KeyPressed(Key::Up) => model.robot.set_command(diff_drive::RobotCommand::Forward),
         KeyPressed(Key::Down) => model.robot.set_command(diff_drive::RobotCommand::Back),
-        KeyReleased(key) => match key {
-            Key::Right | Key::Left => {
-                if app.keys.down.contains(&Key::Up) {
-                    model.robot.set_command(diff_drive::RobotCommand::Forward);
-                } else if app.keys.down.contains(&Key::Down) {
-                    model.robot.set_command(diff_drive::RobotCommand::Back);
-                } else {
-                    model.robot.set_command(diff_drive::RobotCommand::Stop);
+        KeyReleased(key) => {
+            let command = match key {
+                Key::Right | Key::Left => {
+                    if app.keys.down.contains(&Key::Up) {
+                        diff_drive::RobotCommand::Forward
+                    } else if app.keys.down.contains(&Key::Down) {
+                        diff_drive::RobotCommand::Back
+                    } else {
+                        diff_drive::RobotCommand::Stop
+                    }
                 }
-            }
-            Key::Up | Key::Down => {
-                if app.keys.down.contains(&Key::Right) {
-                    model.robot.set_command(diff_drive::RobotCommand::TurnRight);
-                } else if app.keys.down.contains(&Key::Left) {
-                    model.robot.set_command(diff_drive::RobotCommand::TurnLeft);
-                } else {
-                    model.robot.set_command(diff_drive::RobotCommand::Stop);
+                Key::Up | Key::Down => {
+                    if app.keys.down.contains(&Key::Right) {
+                        diff_drive::RobotCommand::TurnRight
+                    } else if app.keys.down.contains(&Key::Left) {
+                        diff_drive::RobotCommand::TurnLeft
+                    } else {
+                        diff_drive::RobotCommand::Stop
+                    }
                 }
-            }
-            _other => (),
-        },
+                _other => model.robot.command,
+            };
+            model.robot.set_command(command);
+        }
         _other => (),
     }
 }

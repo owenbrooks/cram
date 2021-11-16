@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum RobotCommand {
     TurnLeft,
     TurnRight,
@@ -29,7 +29,7 @@ pub struct RobotState {
 pub struct Robot {
     pub state: RobotState,
     wheel_base: f32,
-    command: RobotCommand,
+    pub command: RobotCommand,
 }
 
 const TURN_VEL: f32 = 0.1;

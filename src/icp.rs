@@ -89,6 +89,7 @@ pub fn estimate_pose(new_scan: &Vec<Point2>, prev_scan: &Vec<Point2>, pose_graph
 
     let correspondences = nearest_neighbours(&new_scan, &prev_scan);
     let transform = find_transform(&prev_scan, &new_scan, &correspondences);
+    println!("tf {:?}", transform);
     let prev_pose = pose_graph.nodes.last();
     match prev_pose {
         Some(prev_pose) => {
