@@ -86,7 +86,7 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
     };
     let coords = lidar::point_to_pixel_coords(robot_coords, model.environment.dimensions);
     if coords.is_some() {
-        model.scan = lidar::scan_from_point(robot_coords, &model.environment, M2PIXEL);
+        model.scan = lidar::scan_from_point(model.robot.state.pose, &model.environment, M2PIXEL);
     }
 }
 

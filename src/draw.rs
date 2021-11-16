@@ -1,5 +1,7 @@
 use crate::{diff_drive, pose_graph::PoseGraph, transforms};
 use nannou::prelude::*;
+use ndarray::prelude::*;
+use ndarray_linalg::Inverse;
 
 pub fn draw_pose(pose: diff_drive::Pose, draw: &Draw, m2pixel: f32, color: nannou::color::Rgba8) {
     // Circle for position
@@ -40,8 +42,11 @@ pub fn draw_pose_graph(pose_graph: &PoseGraph, draw: &Draw, m2pixel: f32) {
 pub fn draw_scan_points(points: &Vec<Point2>, draw: &Draw, m2pixel: f32, color: nannou::color::Rgb8, origin: diff_drive::Pose) {
     let scan_point_radius = 1.;
     for pt in points {
+        let tf = transforms::pose_to_trans(origin);
+        let homog_pt = array![pt.x as f64, pt.y as f64, 1.];
+        let tf_pt = tf.dot(&homog_pt);
         draw.ellipse()
-            .x_y(m2pixel * (pt.x + origin.x), m2pixel * (pt.y + origin.y))
+            .x_y(m2pixel * tf_pt[0] as f32, m2pixel * tf_pt[1] as f32)
             .radius(scan_point_radius)
             .color(color);
     }
