@@ -16,6 +16,7 @@ struct Model {
     robot: diff_drive::Robot,
     mouse_is_lidar: bool,
     pose_graph: pose_graph::PoseGraph,
+    scan_continuously: bool,
 }
 
 const M2PIXEL: f32 = 100.0;
@@ -71,6 +72,7 @@ fn model(app: &App) -> Model {
         robot: diff_drive::Robot::new(0.3),
         pose_graph,
         mouse_is_lidar: false,
+        scan_continuously: false,
     }
 }
 
@@ -88,6 +90,16 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
     if coords.is_some() {
         model.scan = lidar::scan_from_point(model.robot.state.pose, &model.environment, M2PIXEL);
     }
+
+    if model.scan_continuously {
+        if model.prev_scan.len() > 0 {
+            let pose_est = icp::estimate_pose(&model.scan, &model.prev_scan, &model.pose_graph);
+            model.pose_graph.add_measurement(pose_est);
+        } else {
+            model.pose_graph.add_measurement(model.robot.state.pose); // use ground truth pose for initial estimate only
+        }
+        model.prev_scan = model.scan.clone();
+    }
 }
 
 fn event(app: &App, model: &mut Model, event: WindowEvent) {
@@ -97,6 +109,13 @@ fn event(app: &App, model: &mut Model, event: WindowEvent) {
         }
         KeyPressed(Key::M) => model.show_ground_truth = !model.show_ground_truth,
         KeyPressed(Key::L) => model.mouse_is_lidar = !model.mouse_is_lidar,
+        KeyPressed(Key::R) => {
+            // reset pose graph
+            model.pose_graph.nodes = vec![];
+            model.pose_graph.edges = vec![];
+            model.prev_scan = vec![];
+        }
+        KeyPressed(Key::C) => model.scan_continuously = !model.scan_continuously,
         // Take measurement with space bar
         KeyPressed(Key::Space) => {
             if model.prev_scan.len() > 0 {
@@ -161,7 +180,6 @@ fn view(app: &App, model: &Model, frame: Frame) {
         nannou::color::RED,
         model.robot.state.pose,
     );
-
     if let Some(last_pose) = &model.pose_graph.nodes.last() {
         draw::draw_scan_points(
             &model.prev_scan,
@@ -171,15 +189,21 @@ fn view(app: &App, model: &Model, frame: Frame) {
             transforms::trans_to_pose(last_pose),
         );
     }
+    draw::draw_scan_points(
+        &model.scan,
+        &draw,
+        M2PIXEL,
+        nannou::color::GREEN,
+        diff_drive::Pose {
+            x: 0.,
+            y: 0.,
+            theta: 0.,
+        },
+    );
 
     // Display the current robot state
     if !model.mouse_is_lidar {
-        draw::draw_pose(
-            model.robot.state.pose,
-            &draw,
-            M2PIXEL,
-            Rgba8::from(ORANGE),
-        );
+        draw::draw_pose(model.robot.state.pose, &draw, M2PIXEL, Rgba8::from(ORANGE));
     }
 
     // Display the pose graph

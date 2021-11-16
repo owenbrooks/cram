@@ -1,7 +1,6 @@
 use crate::{diff_drive, pose_graph::PoseGraph, transforms};
 use nannou::prelude::*;
 use ndarray::prelude::*;
-use ndarray_linalg::Inverse;
 
 pub fn draw_pose(pose: diff_drive::Pose, draw: &Draw, m2pixel: f32, color: nannou::color::Rgba8) {
     // Circle for position

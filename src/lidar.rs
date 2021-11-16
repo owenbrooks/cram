@@ -30,7 +30,7 @@ pub fn point_to_pixel_coords(mouse_pos: Point2, environment_dims: Dimension) -> 
 pub fn scan_from_point(robot_pose: Pose, environment: &Environment, m2pixel: f32) -> Vec<Point2> {
     // output is in the frame of the robot
     let scan_angles = lin_space(0.0..std::f32::consts::PI * 2.0, 128);
-    let max_scan_distance = 250.;
+    let max_scan_distance = 450.;
     let scan_step = 1.;
     let scan_range = arange(0.0..max_scan_distance, scan_step);
 

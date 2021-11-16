@@ -92,9 +92,7 @@ pub fn estimate_pose(new_scan: &Vec<Point2>, prev_scan: &Vec<Point2>, pose_graph
     let prev_pose = pose_graph.nodes.last();
     match prev_pose {
         Some(prev_pose) => {
-            println!("tf {:?}", transform);
-            let new_pose = transform.inv().unwrap().dot(prev_pose);
-            println!("{:?}", trans_to_pose(&new_pose));
+            let new_pose = prev_pose.dot(&transform.inv().unwrap());
             trans_to_pose(&new_pose)
         },
         None => {
