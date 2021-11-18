@@ -82,12 +82,12 @@ fn view(app: &App, model: &Model, frame: Frame) {
     let draw = app.draw();
     draw.background().color(WHITE);
 
-    let m2pixel: f64 = 100.0;
+    let pixels_per_m: f64 = 100.0;
 
     // Draw point clouds
     for row in model.cloud_ref.outer_iter() {
-        let x = row[0] * m2pixel;
-        let y = row[1] * m2pixel;
+        let x = row[0] * pixels_per_m;
+        let y = row[1] * pixels_per_m;
         draw.ellipse()
             .x_y(x as f32, y as f32)
             .radius(3.0)
@@ -99,8 +99,8 @@ fn view(app: &App, model: &Model, frame: Frame) {
         cram::transforms::transformed_cloud(&model.cloud_target, &inv_transform);
     let cloud_to_display = if model.show_transformed {
         for row in transformed_target.outer_iter() {
-            let x = row[0] * m2pixel;
-            let y = row[1] * m2pixel;
+            let x = row[0] * pixels_per_m;
+            let y = row[1] * pixels_per_m;
             draw.ellipse()
                 .x_y(x as f32, y as f32)
                 .radius(3.0)
@@ -109,8 +109,8 @@ fn view(app: &App, model: &Model, frame: Frame) {
         &transformed_target
     } else {
         for row in model.cloud_target.outer_iter() {
-            let x = row[0] * m2pixel;
-            let y = row[1] * m2pixel;
+            let x = row[0] * pixels_per_m;
+            let y = row[1] * pixels_per_m;
             draw.ellipse()
                 .x_y(x as f32, y as f32)
                 .radius(3.0)
@@ -132,8 +132,8 @@ fn view(app: &App, model: &Model, frame: Frame) {
             let new_pt = model.cloud_ref.index_axis(Axis(0), from);
             let ref_pt = cloud_to_display.index_axis(Axis(0), to);
 
-            let new_pt = vec2(new_pt[0] as f32, new_pt[1] as f32) * m2pixel as f32;
-            let ref_pt = vec2(ref_pt[0] as f32, ref_pt[1] as f32) * m2pixel as f32;
+            let new_pt = vec2(new_pt[0] as f32, new_pt[1] as f32) * pixels_per_m as f32;
+            let ref_pt = vec2(ref_pt[0] as f32, ref_pt[1] as f32) * pixels_per_m as f32;
 
             draw.line()
                 .points(new_pt, ref_pt)

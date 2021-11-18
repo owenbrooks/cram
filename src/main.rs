@@ -19,7 +19,7 @@ struct Model {
     scan_continuously: bool,
 }
 
-const M2PIXEL: f32 = 100.0;
+const PIXELS_PER_M: f32 = 100.0;
 
 fn model(app: &App) -> Model {
     app.new_window()
@@ -82,13 +82,14 @@ fn update(_app: &App, model: &mut Model, _update: Update) {
         model.mouse_pos
     } else {
         pt2(
-            M2PIXEL * model.robot.state.pose.x,
-            M2PIXEL * model.robot.state.pose.y,
+            PIXELS_PER_M * model.robot.state.pose.x,
+            PIXELS_PER_M * model.robot.state.pose.y,
         )
     };
     let coords = lidar::point_to_pixel_coords(robot_coords, model.environment.dimensions);
     if coords.is_some() {
-        model.scan = lidar::scan_from_point(model.robot.state.pose, &model.environment, M2PIXEL);
+        model.scan =
+            lidar::scan_from_point(model.robot.state.pose, &model.environment, PIXELS_PER_M);
     }
 
     if model.scan_continuously {
@@ -179,7 +180,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
     draw::draw_scan_points(
         &model.scan,
         &draw,
-        M2PIXEL,
+        PIXELS_PER_M,
         nannou::color::RED,
         model.robot.state.pose,
     );
@@ -187,30 +188,35 @@ fn view(app: &App, model: &Model, frame: Frame) {
         draw::draw_scan_points(
             &model.prev_scan,
             &draw,
-            M2PIXEL,
+            PIXELS_PER_M,
             nannou::color::WHITE,
             transforms::trans_to_pose(last_pose),
         );
     }
-    draw::draw_scan_points(
-        &model.scan,
-        &draw,
-        M2PIXEL,
-        nannou::color::GREEN,
-        diff_drive::Pose {
-            x: 0.,
-            y: 0.,
-            theta: 0.,
-        },
-    );
+    // draw::draw_scan_points(
+    //     &model.scan,
+    //     &draw,
+    //     PIXELS_PER_M,
+    //     nannou::color::GREEN,
+    //     diff_drive::Pose {
+    //         x: 0.,
+    //         y: 0.,
+    //         theta: 0.,
+    //     },
+    // );
 
     // Display the current robot state
     if !model.mouse_is_lidar {
-        draw::draw_pose(model.robot.state.pose, &draw, M2PIXEL, Rgba8::from(ORANGE));
+        draw::draw_pose(
+            model.robot.state.pose,
+            &draw,
+            PIXELS_PER_M,
+            Rgba8::from(ORANGE),
+        );
     }
 
     // Display the pose graph
-    draw::draw_pose_graph(&model.pose_graph, &draw, M2PIXEL);
+    draw::draw_pose_graph(&model.pose_graph, &draw, PIXELS_PER_M);
 
     draw.to_frame(app, &frame).unwrap();
 }

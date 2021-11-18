@@ -1,9 +1,9 @@
 #![allow(clippy::many_single_char_names)]
-use crate::{transforms::*, pose_graph, diff_drive::Pose};
-use nannou::geom::Point2;
+use crate::{diff_drive::Pose, pose_graph, transforms::*};
 use approx::abs_diff_eq;
 use kdtree::distance::squared_euclidean;
 use kdtree::KdTree;
+use nannou::geom::Point2;
 use ndarray::{prelude::*, stack};
 use ndarray_linalg::{solve::Determinant, svd::*, Inverse};
 use std::cmp::min;
@@ -34,7 +34,7 @@ pub fn nearest_neighbours(reference: &Array2<f64>, new: &Array2<f64>) -> Array1<
 // uses SVD-based algorithm described in Least-Squares Fitting of Two 3-D Point Sets by K. S. ARUN
 pub fn find_transform(
     from: &Array2<f64>, // must be homogenous: x, y, 1
-    to: &Array2<f64>, // must be homogenous: x, y, 1
+    to: &Array2<f64>,   // must be homogenous: x, y, 1
     _correspondences: &Array1<usize>,
 ) -> Array2<f64> {
     let point_count = min(from.nrows(), to.nrows()); // TODO: use corresponding points rather than hardcoding min point count
@@ -47,9 +47,12 @@ pub fn find_transform(
         .mean_axis(Axis(0))
         .unwrap();
 
-    let qi = from.slice(s![..point_count - 1, ..from.ncols() - 1]).to_owned() - &p;
+    let qi = from
+        .slice(s![..point_count - 1, ..from.ncols() - 1])
+        .to_owned()
+        - &p;
     let qi_dash = to.slice(s![..point_count - 1, ..to.ncols() - 1]).to_owned() - &p;
-            
+
     let h = qi.t().dot(&qi_dash);
     let svd = h.svd(true, true).unwrap();
     let u = svd.0.unwrap();
@@ -62,7 +65,7 @@ pub fn find_transform(
         x
     } else {
         // Det is not +1, so it is -1
-        // We take the rotation instead 
+        // We take the rotation instead
         println!("det(x) = {}", det_x);
         let mut v_dash: Array2<f64> = v.to_owned();
         let neg_col2 = -v_dash.slice(s![.., 1]).to_owned();
@@ -79,11 +82,15 @@ fn vec_point2_to_homog(orig_vec: &Vec<Point2>) -> Array2<f64> {
     let x = Array::from_iter(orig_vec.into_iter().map(|point| point.x as f64));
     let y = Array::from_iter(orig_vec.into_iter().map(|point| point.y as f64));
     let h = Array::ones(orig_vec.len());
-    
+
     stack![Axis(1), x, y, h]
 }
 
-pub fn estimate_pose(new_scan: &Vec<Point2>, prev_scan: &Vec<Point2>, pose_graph: &pose_graph::PoseGraph) -> Pose {
+pub fn estimate_pose(
+    new_scan: &Vec<Point2>,
+    prev_scan: &Vec<Point2>,
+    pose_graph: &pose_graph::PoseGraph,
+) -> Pose {
     let new_scan = vec_point2_to_homog(new_scan);
     let prev_scan = vec_point2_to_homog(prev_scan);
 
@@ -95,13 +102,11 @@ pub fn estimate_pose(new_scan: &Vec<Point2>, prev_scan: &Vec<Point2>, pose_graph
         Some(prev_pose) => {
             let new_pose = prev_pose.dot(&transform.inv().unwrap());
             trans_to_pose(&new_pose)
-        },
-        None => {
-            Pose {
-                x: 0.,
-                y: 0.,
-                theta: 0.,
-            }
         }
+        None => Pose {
+            x: 0.,
+            y: 0.,
+            theta: 0.,
+        },
     }
 }

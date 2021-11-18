@@ -1,10 +1,10 @@
+use crate::{diff_drive::Pose, transforms};
 use iter_num_tools::{arange, lin_space};
 use nannou::prelude::{pt2, Point2};
-use rand::thread_rng;
-use rand_distr::{Distribution, Normal};
-use crate::{diff_drive::Pose, transforms};
 use ndarray::prelude::*;
 use ndarray_linalg::Inverse;
+use rand::thread_rng;
+use rand_distr::{Distribution, Normal};
 
 #[derive(Copy, Clone, Debug)]
 pub struct Dimension {
@@ -27,7 +27,11 @@ pub fn point_to_pixel_coords(mouse_pos: Point2, environment_dims: Dimension) -> 
     Some(PixelCoord { x, y })
 }
 
-pub fn scan_from_point(robot_pose: Pose, environment: &Environment, m2pixel: f32) -> Vec<Point2> {
+pub fn scan_from_point(
+    robot_pose: Pose,
+    environment: &Environment,
+    pixels_per_m: f32,
+) -> Vec<Point2> {
     // output is in the frame of the robot
     let scan_angles = lin_space(0.0..std::f32::consts::PI * 2.0, 128);
     let max_scan_distance = 450.;
@@ -41,7 +45,7 @@ pub fn scan_from_point(robot_pose: Pose, environment: &Environment, m2pixel: f32
     let normal = Normal::new(0.0, 0.0).unwrap();
 
     let tf = transforms::pose_to_trans(robot_pose);
-    let origin = pt2(robot_pose.x * m2pixel, robot_pose.y * m2pixel);
+    let origin = pt2(robot_pose.x * pixels_per_m, robot_pose.y * pixels_per_m);
 
     for angle in scan_angles {
         for dist in &scan_range {
@@ -52,7 +56,7 @@ pub fn scan_from_point(robot_pose: Pose, environment: &Environment, m2pixel: f32
                 let object_detected = environment.grid[[scan_coords.y, scan_coords.x]];
                 if object_detected {
                     let noise = normal.sample(&mut rng);
-                    let noisy_point = (origin + (dist + noise) * scan_ray) / m2pixel;
+                    let noisy_point = (origin + (dist + noise) * scan_ray) / pixels_per_m;
                     let noisy_point = array![noisy_point[0] as f64, noisy_point[1] as f64, 1.];
                     let noisy_point = tf.inv().unwrap().dot(&noisy_point);
                     let noisy_point = pt2(noisy_point[0] as f32, noisy_point[1] as f32);
